@@ -30,7 +30,7 @@ button{padding:13px 16px;border:0;border-radius:12px;background:var(--ac);color:
 </style></head><body><div class="w" id="app"></div>
 <script>
 const $=id=>document.getElementById(id),app=$('app'),K='stk_vault_v1',enc=new TextEncoder(),dec=new TextDecoder();
-let U='',KU='',lm='in',key=null,salt=null,S={items:[],sales:[]},V='dash',menu=false,sel='',pd='',mode='cash',cart=[],cust='',ed='',eb=-1,ebd=null,dd='',dtab='sales',xd='',xb=-1;
+let U='',KU='',lm='in',key=null,salt=null,S={items:[],sales:[]},V='dash',menu=false,sel='',pd='',mode='cash',cart=[],cust='',ed='',eb=-1,ebd=null,dd='',dtab='all',xd='',xb=-1;
 const TT={dash:'Dashboard',items:'Items',bill:'Billing',sell:'Sell',admin:'Admin'},IC={dash:'📊',items:'📦',bill:'🧾',sell:'💰',admin:'⚙️'},TABS=['dash','items','bill','sell','admin'];
 const uid=()=>Math.random().toString(36).slice(2,9);
 const b64=a=>btoa(String.fromCharCode(...new Uint8Array(a))),ub=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
@@ -81,28 +81,21 @@ return `<div class="hero"><small>Overall profit or loss</small><b>${ov>0.004?'+'
 <div class="k"><small>🧾 Total money</small><b>${R(tot)}</b><i>Cash + Online</i></div>
 <div class="k"><small>💵 Cash money</small><b>${R(cash)}</b><i>Received in cash</i></div>
 <div class="k"><small>📱 Online money</small><b>${R(onl)}</b><i>Received online</i></div></div>`}
-function dateV(){const day={};S.sales.forEach((b,i)=>{const k=ymd(b.d),x=bill(b),p=payOf(b),o=day[k]||(day[k]={n:0,t:0,pr:0,c:0,o:0,bl:[]});o.n++;o.t+=x.t;o.pr+=x.pr;o.c+=p.cash;o.o+=p.online;o.bl.push({b,i,x})});
-const ds=Object.keys(day).sort().reverse();if(!day[dd])dd=ds[0]||'';
-let de=0,dc=0,dp=0,dk=0,dn=0;const bl=[],im={};
-S.sales.forEach(b=>{if(ymd(b.d)!==dd)return;const x=bill(b),p=payOf(b);de+=x.t;dp+=x.pr;dc+=x.t-x.pr;dk+=p.cash;dn+=p.online;bl.push(b);
-b.lines.forEach(l=>{const it=itm(l.id),o=im[l.id]||(im[l.id]={n:it?it.name:'Item',q:0,s:0,c:0});o.q+=l.q;o.s+=l.q*l.p;o.c+=l.q*(it?it.p:0)})});
-bl.sort((a,b)=>b.d-a.d);
-const pl=n=>n>0.004?'Profit':n<-0.004?'Loss':'Break-even';
-const sel=ds.length?`<label>Select a billing date</label><select onchange="dd=this.value;render()">${ds.map(k=>`<option value="${k}" ${k===dd?'selected':''}>${fd(k)} · ${day[k].n} bill${day[k].n==1?'':'s'}</option>`).join('')}</select>`:'';
-const today=ymd(Date.now()),yest=ymd(Date.now()-864e5),tb=ds.reduce((a,k)=>a+day[k].n,0),ts=ds.reduce((a,k)=>a+day[k].t,0),tp=ds.reduce((a,k)=>a+day[k].pr,0);
-const sales=`
-<h3 style="margin:18px 0 6px">Sales by date <span class="mu" style="font-weight:400">· tap a date to open</span></h3>
-${ds.map(k=>{const o=day[k],open=xd===k,lb=k===today?'Today':k===yest?'Yesterday':'';
+function dateV(){
+const all=S.sales.map((b,i)=>({b,i,x:bill(b)})),cnt={all:all.length,pr:all.filter(o=>o.x.pr>0.004).length,ls:all.filter(o=>o.x.pr<-0.004).length};
+const fl=all.filter(o=>dtab==='pr'?o.x.pr>0.004:dtab==='ls'?o.x.pr<-0.004:true);
+const day={};fl.forEach(({b,i,x})=>{const k=ymd(b.d),p=payOf(b),o=day[k]||(day[k]={n:0,t:0,pr:0,c:0,o:0,bl:[]});o.n++;o.t+=x.t;o.pr+=x.pr;o.c+=p.cash;o.o+=p.online;o.bl.push({b,i,x})});
+const ds=Object.keys(day).sort().reverse(),today=ymd(Date.now()),yest=ymd(Date.now()-864e5),tpr=fl.reduce((a,o)=>a+o.x.pr,0);
+const TB=[['all','📋 All'],['pr','📈 Profit'],['ls','📉 Loss']];
+const list=`${ds.map(k=>{const o=day[k],open=xd===k,lb=k===today?'Today':k===yest?'Yesterday':'';
 return `<div class="cd" style="padding:0;overflow:hidden;${open?'border-color:var(--ac)':''}"><div onclick="xd='${open?'':k}';xb=-1;render()" style="padding:14px 16px;cursor:pointer"><div class="h"><b style="font-size:17px">📅 ${fd(k)}${lb?` <span class="chip">${lb}</span>`:''}</b><span class="mu">${open?'▲':'▼'}</span></div>
 <div class="h" style="margin-top:8px;flex-wrap:wrap;justify-content:flex-start"><span class="chip">🧾 ${o.n} bill${o.n==1?'':'s'}</span><span class="chip">💰 ${R(o.t)}</span><span class="chip ${cls(o.pr)}">${o.pr>=0?'Profit ':'Loss '}${R(Math.abs(o.pr))}</span></div></div>
 ${open?`<div style="padding:0 16px 14px;border-top:1px solid var(--bd)"><div class="gr" style="margin-top:12px"><div class="k"><small>💰 Sales</small><b>${R(o.t)}</b></div><div class="k"><small>💼 Cost of sold items</small><b>${R(o.t-o.pr)}</b></div><div class="k"><small>${o.pr>=0?'📈 Profit':'📉 Loss'}</small><b class="${cls(o.pr)}">${R(Math.abs(o.pr))}</b></div><div class="k"><small>🧾 Received</small><b>${R(o.c+o.o)}</b><i>💵 ${R(o.c)} · 📱 ${R(o.o)}</i></div></div>
 <h3 style="margin:16px 0 4px">Bills on this day</h3>${o.bl.slice().sort((a,c)=>c.b.d-a.b.d).map(({b,i,x})=>{if(eb===i)return editB();const bo=xb===i;return `<div style="border-top:1px solid var(--bd)"><div onclick="xb=${bo?-1:i};render()" style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;cursor:pointer"><span><b>${esc((b.c||'').trim()||'Walk-in customer')}</b><br><span class="mu">${new Date(b.d).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})} · ${payLabel(b)}</span></span><span style="text-align:right"><b>${R(x.t)}</b><br><span class="chip ${cls(x.pr)}">${x.pr>=0?'Profit ':'Loss '}${R(Math.abs(x.pr))}</span></span></div>
 ${bo?`<div style="background:var(--bg);border-radius:12px;padding:4px 12px;margin-bottom:10px">${b.lines.map(l=>{const it=itm(l.id),lp=l.q*(l.p-(it?it.p:0));return `<div class="ln" style="border-top:0"><span>${esc(it?it.name:'Item')}<br><span class="mu">${l.q} × ${R(l.p)} (cost ${R(it?it.p:0)})</span></span><span style="text-align:right">${R(l.q*l.p)}<br><span class="${cls(lp)}" style="font-size:12px">${lp>=0?'+':'−'}${R(Math.abs(lp))}</span></span></div>`}).join('')}<div class="ln"><b>Bill total</b><b>${R(x.t)}</b></div><div class="rw" style="margin:6px 0 8px"><button class="s" style="flex:1" onclick="stE(${i})">✏️ Edit</button><button class="s" style="flex:1;color:var(--r)" onclick="del('b${i}')">${pd==='b'+i?'Tap again to delete':'🗑️ Delete'}</button></div></div>`:''}</div>`}).join('')}</div>`:''}</div>`}).join('')}`;
-const pls=`<div class="gr" style="margin-top:6px"><div class="k" style="grid-column:1/-1"><small>📈 ${pl(dp)} of the day</small><b class="${cls(dp)}">${dp>0.004?'+':''}${R(dp)}</b><i>Earning − investment</i></div><div class="k"><small>💰 Earning (sales)</small><b>${R(de)}</b></div><div class="k"><small>💼 Investment on sold items</small><b>${R(dc)}</b><i>Purchase cost of what was sold</i></div></div>
-<h3 style="margin:16px 0 0">Item-wise on this day</h3>${Object.values(im).map(o=>{const p=o.s-o.c;return `<div class="ln"><span>${esc(o.n)} · ${rd(o.q)} sold<br><span class="mu">Sold ${R(o.s)} · Cost ${R(o.c)}</span></span><span class="chip ${cls(p)}">${p>=0?'Profit ':'Loss '}${R(Math.abs(p))}</span></div>`}).join('')}
-<h3 style="margin:16px 0 0">All billed days</h3>${ds.map(k=>{const p=day[k].pr;return `<div class="ln" style="cursor:pointer" onclick="dd='${k}';render()"><span>${k===dd?'<b>'+fd(k)+'</b>':fd(k)}<br><span class="mu">${day[k].n} bill${day[k].n==1?'':'s'} · Sales ${R(day[k].t)}</span></span><span class="chip ${cls(p)}">${p>=0?'Profit ':'Loss '}${R(Math.abs(p))}</span></div>`}).join('')}`;
-return `<div class="cd"><div class="seg" style="margin-top:0"><button class="${dtab==='sales'?'on':''}" onclick="dtab='sales';render()">💰 Sales</button><button class="${dtab==='pl'?'on':''}" onclick="dtab='pl';render()">📈 Profit &amp; Loss</button></div>
-${ds.length?(dtab==='sales'?sales:sel+pls):'<p class="mu">No sales yet. Dates will appear here once you complete a bill.</p>'}</div>`}
+return `<div class="seg" style="margin:16px 0 0">${TB.map(([k,t])=>`<button style="padding:12px 4px;font-size:14px" class="${dtab===k?'on':''}" onclick="dtab='${k}';xd='';xb=-1;render()">${t} (${cnt[k]})</button>`).join('')}</div>
+<div class="h" style="margin:10px 0 6px"><span class="mu">${fl.length} bill${fl.length==1?'':'s'} · ${ds.length} day${ds.length==1?'':'s'}</span><span class="chip ${cls(tpr)}">${dtab==='ls'?'Total loss ':dtab==='pr'?'Total profit ':tpr>=0?'Net profit ':'Net loss '}${R(Math.abs(tpr))}</span></div>
+${ds.length?`<p class="mu" style="margin:0 0 6px">Tap a date to open · tap a bill to edit or delete</p>`+list:`<div class="cd mu">${dtab==='pr'?'No profit bills yet.':dtab==='ls'?'No loss bills. 🎉':'No sales yet.'}</div>`}`}
 function itemsV(){return `<div class="cd"><h3>Add an item</h3><label>Item name</label><input id="nn" placeholder="e.g. Rice 1 kg"><div class="rw"><div><label>Quantity</label><input id="nq" type="number" step="any" min="0" placeholder="0"></div><div><label>Purchase price (each)</label><input id="np" type="number" step="any" min="0" placeholder="₹"></div></div><button style="width:100%;margin-top:10px" onclick="addI()">Add item</button></div>
 <h3 style="margin:20px 0 0">Items in shop</h3>${S.items.map(it=>ed===it.id?editI(it):`<div class="cd"><div class="h"><h3 style="margin:0">${esc(it.name)}</h3><span><button class="x" style="color:var(--ac)" onclick="ed='${it.id}';render()">Edit</button><button class="x" onclick="del('i${it.id}')">${pd==='i'+it.id?'Tap again to delete':'Delete'}</button></span></div>
 <p style="margin:8px 0 0"><span class="chip">Bought: ${it.q}</span> <span class="chip">Purchase price: ${R(it.p)}</span> <span class="chip ${held(it)>0?'':'r'}">In stock: ${held(it)}</span></p></div>`).join('')||'<div class="cd mu">No items yet.</div>'}`}
