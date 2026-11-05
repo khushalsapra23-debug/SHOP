@@ -30,7 +30,7 @@ button{padding:13px 16px;border:0;border-radius:12px;background:var(--ac);color:
 </style></head><body><div class="w" id="app"></div>
 <script>
 const $=id=>document.getElementById(id),app=$('app'),K='stk_vault_v1',enc=new TextEncoder(),dec=new TextDecoder();
-let U='',KU='',lm='in',key=null,salt=null,S={items:[],sales:[]},V='dash',menu=false,sel='',pd='',mode='cash',cart=[],cust='';
+let U='',KU='',lm='in',key=null,salt=null,S={items:[],sales:[]},V='dash',menu=false,sel='',pd='',mode='cash',cart=[],cust='',ed='',eb=-1,ebd=null;
 const TT={dash:'Dashboard',items:'Items',bill:'Billing',sell:'Sell',admin:'Admin'},IC={dash:'📊',items:'📦',bill:'🧾',sell:'💰',admin:'⚙️'},TABS=['dash','items','bill','sell','admin'];
 const uid=()=>Math.random().toString(36).slice(2,9);
 const b64=a=>btoa(String.fromCharCode(...new Uint8Array(a))),ub=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
@@ -65,7 +65,7 @@ const sold=id=>{let n=0;S.sales.forEach(b=>b.lines.forEach(l=>{if(l.id===id)n+=l
 const held=it=>rd(it.q-sold(it.id)),itm=id=>S.items.find(x=>x.id===id);
 const avail=it=>rd(held(it)-cart.filter(c=>c.id===it.id).reduce((a,c)=>a+c.q,0));
 const bill=b=>{let t=0,pr=0;b.lines.forEach(l=>{const it=itm(l.id);t+=l.q*l.p;pr+=l.q*(l.p-(it?it.p:0))});return{t,pr}};
-const tm=()=>{menu=!menu;render()},go=v=>{V=v;menu=false;pd='';render();scrollTo(0,0)};
+const tm=()=>{menu=!menu;render()},go=v=>{V=v;menu=false;pd='';ed='';eb=-1;render();scrollTo(0,0)};
 function render(){
 const nav=menu?`<div class="ov" onclick="tm()"></div><nav class="dr"><h2>🏪 ${esc(U)}</h2>${TABS.map(x=>`<button class="${V===x?'on':''}" onclick="go('${x}')"><span>${IC[x]}</span>${TT[x]}</button>`).join('')}<button onclick="lock()"><span>🔒</span>Lock</button></nav>`:'';
 const tb=`<div class="tb">${TABS.map(x=>`<button class="${V===x?'on':''}" onclick="go('${x}')"><span>${IC[x]}</span>${TT[x]}</button>`).join('')}</div>`;
@@ -78,15 +78,15 @@ return `<div class="hero"><small>Overall profit or loss</small><b>${ov>0.004?'+'
 <div class="k"><small>💵 Cash money</small><b>${R(cash)}</b><i>Received in cash</i></div>
 <div class="k"><small>📱 Online money</small><b>${R(onl)}</b><i>Received online</i></div></div>`}
 function itemsV(){return `<div class="cd"><h3>Add an item</h3><label>Item name</label><input id="nn" placeholder="e.g. Rice 1 kg"><div class="rw"><div><label>Quantity</label><input id="nq" type="number" step="any" min="0" placeholder="0"></div><div><label>Purchase price (each)</label><input id="np" type="number" step="any" min="0" placeholder="₹"></div></div><button style="width:100%;margin-top:10px" onclick="addI()">Add item</button></div>
-<h3 style="margin:20px 0 0">Items in shop</h3>${S.items.map(it=>`<div class="cd"><div class="h"><h3 style="margin:0">${esc(it.name)}</h3><button class="x" onclick="del('i${it.id}')">${pd==='i'+it.id?'Tap again to delete':'Delete'}</button></div>
+<h3 style="margin:20px 0 0">Items in shop</h3>${S.items.map(it=>ed===it.id?editI(it):`<div class="cd"><div class="h"><h3 style="margin:0">${esc(it.name)}</h3><span><button class="x" style="color:var(--ac)" onclick="ed='${it.id}';render()">Edit</button><button class="x" onclick="del('i${it.id}')">${pd==='i'+it.id?'Tap again to delete':'Delete'}</button></span></div>
 <p style="margin:8px 0 0"><span class="chip">Bought: ${it.q}</span> <span class="chip">Purchase price: ${R(it.p)}</span> <span class="chip ${held(it)>0?'':'r'}">In stock: ${held(it)}</span></p></div>`).join('')||'<div class="cd mu">No items yet.</div>'}`}
 function billV(){const av=S.items.filter(it=>avail(it)>0);if(!av.some(x=>x.id===sel))sel=av.length?av[0].id:'';
 const cur=itm(sel),b={lines:cart},bb=bill(b);
 return (S.items.length?`<div class="cd"><h3>New bill</h3><label>Customer name (optional)</label><input id="cn" value="${esc(cust)}" oninput="cust=this.value" placeholder="e.g. Ramesh">${av.length?`<label>Choose item</label><select onchange="sel=this.value;render()">${av.map(x=>`<option value="${x.id}" ${x.id===sel?'selected':''}>${esc(x.name)}</option>`).join('')}</select>
-<div class="rw"><div><label>Quantity</label><input id="sq" oninput="pv()" type="number" step="any" min="0" placeholder="0"></div><div><label>Selling price (each)</label><input id="sp" oninput="pv()" type="number" step="any" min="0" placeholder="₹"></div></div>
-<p id="pv" class="mu" style="min-height:24px">Enter quantity and price.</p><button class="s" style="width:100%" onclick="addC()">+ Add to bill</button>`:'<p class="mu">No more stock available to add.</p>'}
+<div class="rw"><div><label>Quantity</label><input id="sq" type="number" step="any" min="0" placeholder="0"></div><div><label>Selling price (each)</label><input id="sp" type="number" step="any" min="0" placeholder="₹"></div></div>
+<button class="s" style="width:100%" onclick="addC()">+ Add to bill</button>`:'<p class="mu">No more stock available to add.</p>'}
 ${cart.length?`<div style="margin-top:12px"><b>Items in this bill</b>${cart.map((c,n)=>`<div class="ln"><span>${esc(itm(c.id).name)} · ${c.q} × ${R(c.p)}</span><span>${R(c.q*c.p)} <button class="x" onclick="cart.splice(${n},1);render()">✕</button></span></div>`).join('')}
-<div class="ln"><b>Bill total</b><b>${R(bb.t)}</b></div><p class="${cls(bb.pr)}" style="margin:0 0 6px">${bb.pr>=0?'Profit':'Loss'} on this bill: <b>${R(Math.abs(bb.pr))}</b></p>
+<div class="ln"><b>Bill total</b><b>${R(bb.t)}</b></div>
 <label>Mode of payment</label><div class="seg"><button class="${mode==='cash'?'on':''}" onclick="setM('cash')">💵 Cash</button><button class="${mode==='online'?'on':''}" onclick="setM('online')">📱 Online</button></div>
 <button style="width:100%;margin-top:6px" onclick="done()">Complete sale</button></div>`:''}</div>`:'<div class="cd mu">No items yet. Add items from the Items tab.</div>')}
 function sellV(){let tot=0,pr=0;const cm={};
@@ -94,15 +94,28 @@ S.sales.forEach(b=>{const x=bill(b),n=(b.c||'').trim()||'Walk-in customer',k=n.t
 const cs=Object.values(cm).sort((a,b)=>b.t-a.t),hist=S.sales.map((b,i)=>({b,i})).reverse();
 return `<div class="gr" style="margin-top:0"><div class="k"><small>🧾 Total sales</small><b>${R(tot)}</b><i>${S.sales.length} bill${S.sales.length==1?'':'s'}</i></div><div class="k"><small>📈 Profit from sales</small><b class="${cls(pr)}">${R(pr)}</b><i>Selling − purchase price</i></div></div>
 <h3 style="margin:20px 0 0">Profit by customer</h3>${cs.map(c=>`<div class="cd"><div class="h"><b>${esc(c.n)}</b><span class="chip ${cls(c.p)}">${c.p>=0?'Profit ':'Loss '}${R(Math.abs(c.p))}</span></div><div class="ln"><span>${c.b} bill${c.b>1?'s':''}</span><span>Total ${R(c.t)}</span></div></div>`).join('')||'<div class="cd mu">No sales yet.</div>'}
-<h3 style="margin:20px 0 0">Sales history</h3>${hist.map(({b,i})=>{const x=bill(b),k='b'+i;return `<div class="cd"><div class="h"><b>${esc((b.c||'').trim()||'Walk-in customer')}</b><span class="chip ${cls(x.pr)}">${x.pr>=0?'Profit ':'Loss '}${R(Math.abs(x.pr))}</span></div><div class="mu">${dt(b.d)} · ${b.m==='online'?'📱 Online':'💵 Cash'}</div>
+<h3 style="margin:20px 0 0">Sales history</h3>${hist.map(({b,i})=>{if(eb===i)return editB();const x=bill(b),k='b'+i;return `<div class="cd"><div class="h"><b>${esc((b.c||'').trim()||'Walk-in customer')}</b><span class="chip ${cls(x.pr)}">${x.pr>=0?'Profit ':'Loss '}${R(Math.abs(x.pr))}</span></div><div class="mu">${dt(b.d)} · ${b.m==='online'?'📱 Online':'💵 Cash'}</div>
 ${b.lines.map(l=>`<div class="ln"><span>${esc(itm(l.id)?itm(l.id).name:'Item')} · ${l.q} × ${R(l.p)}</span><span>${R(l.q*l.p)}</span></div>`).join('')}
-<div class="ln"><b>Total ${R(x.t)}</b><button class="x" onclick="del('${k}')">${pd===k?'Tap again to delete':'Delete bill'}</button></div></div>`}).join('')||'<div class="cd mu">No sales yet.</div>'}`}
+<div class="ln"><b>Total ${R(x.t)}</b><span><button class="x" style="color:var(--ac)" onclick="stE(${i})">Edit</button><button class="x" onclick="del('${k}')">${pd===k?'Tap again to delete':'Delete bill'}</button></span></div></div>`}).join('')||'<div class="cd mu">No sales yet.</div>'}`}
 function adminV(){return `<div class="cd"><h3>🔑 Change password</h3><input id="pw0" type="password" placeholder="Current password" autocomplete="current-password"><input id="pw1" type="password" placeholder="New password (6+ characters)" autocomplete="new-password"><input id="pw2" type="password" placeholder="Confirm new password" autocomplete="new-password"><button style="width:100%;margin-top:6px" onclick="chPw()">Change password</button></div>
 <div class="cd"><h3>💾 Backup of all data</h3><p class="mu">All your stocks and sales in one encrypted text. Keep it safe. You can restore it from the lock screen.</p><textarea id="bk" rows="4" readonly onclick="this.select()">${esc(JSON.stringify(Object.assign({u:U},get())))}</textarea><button style="width:100%;margin-top:6px" onclick="cpBk()">Copy backup</button></div>
 <div class="cd"><h3>🗑️ Erase all data</h3><p class="mu">Deletes this account (<b>${esc(U)}</b>): every item, every sale and its password from this browser. Other accounts are not touched. This cannot be undone. Copy a backup first if unsure.</p><input id="er" placeholder="Type ERASE to confirm"><button class="dg" onclick="erase()">Erase everything</button></div>`}
-const setM=m=>{mode=m;const q=$('sq')?$('sq').value:'',p=$('sp')?$('sp').value:'';render();if($('sq')){$('sq').value=q;$('sp').value=p;pv()}};
-function pv(){const it=itm(sel),q=parseFloat($('sq').value),p=parseFloat($('sp').value),e=$('pv');if(!(q>0)||isNaN(p)){e.textContent='Enter quantity and price.';e.className='mu';return}
-const pl=(p-it.p)*q;e.innerHTML=`Line total ${R(q*p)} · ${pl>=0?'Profit':'Loss'}: <b>${R(Math.abs(pl))}</b>`;e.className=cls(pl)}
+const setM=m=>{mode=m;const q=$('sq')?$('sq').value:'',p=$('sp')?$('sp').value:'';render();if($('sq')){$('sq').value=q;$('sp').value=p}};
+function editI(it){return `<div class="cd"><h3>Edit item</h3><label>Item name</label><input id="en" value="${esc(it.name)}"><div class="rw"><div><label>Quantity bought</label><input id="eq" type="number" step="any" min="0" value="${it.q}"></div><div><label>Purchase price (each)</label><input id="ep" type="number" step="any" min="0" value="${it.p}"></div></div><p class="mu">${sold(it.id)} already sold.</p><div class="rw" style="margin-top:6px"><button class="s" style="flex:1" onclick="ed='';render()">Cancel</button><button style="flex:1" onclick="saveI()">Save</button></div></div>`}
+async function saveI(){const it=itm(ed),n=$('en').value.trim(),q=parseFloat($('eq').value),p=parseFloat($('ep').value);
+if(!n||!(q>0)||isNaN(p)||p<0){toast('Enter name, quantity and purchase price.');return}
+if(q<sold(it.id)){toast('Quantity cannot be less than '+sold(it.id)+' already sold.');return}
+it.name=n;it.q=q;it.p=p;ed='';await save();render();toast('Item updated ✓')}
+function stE(i){eb=i;ebd=JSON.parse(JSON.stringify(S.sales[i]));if(!ebd.c)ebd.c='';render()}
+function editB(){return `<div class="cd"><h3>Edit bill</h3><label>Customer name</label><input value="${esc(ebd.c)}" oninput="ebd.c=this.value" placeholder="Walk-in customer">
+${ebd.lines.map((l,n)=>`<div style="margin-top:10px"><div class="h"><b>${esc(itm(l.id)?itm(l.id).name:'Item')}</b><button class="x" onclick="ebd.lines.splice(${n},1);render()">✕</button></div><div class="rw"><div><label>Quantity</label><input type="number" step="any" min="0" value="${l.q}" oninput="ebd.lines[${n}].q=this.value"></div><div><label>Selling price (each)</label><input type="number" step="any" min="0" value="${l.p}" oninput="ebd.lines[${n}].p=this.value"></div></div></div>`).join('')}
+<label>Mode of payment</label><div class="seg"><button class="${ebd.m==='cash'?'on':''}" onclick="ebd.m='cash';render()">💵 Cash</button><button class="${ebd.m==='online'?'on':''}" onclick="ebd.m='online';render()">📱 Online</button></div>
+<div class="rw" style="margin-top:8px"><button class="s" style="flex:1" onclick="eb=-1;render()">Cancel</button><button style="flex:1" onclick="saveB()">Save</button></div></div>`}
+async function saveB(){const lines=[];for(const l of ebd.lines){const q=parseFloat(l.q),p=parseFloat(l.p);if(!(q>0)||isNaN(p)||p<0){toast('Enter a valid quantity and price for every item.');return}lines.push({id:l.id,q,p})}
+if(!lines.length){toast('A bill needs at least one item. Delete the bill instead.');return}
+const use={};S.sales.forEach((b,i)=>{if(i!==eb)b.lines.forEach(l=>use[l.id]=(use[l.id]||0)+l.q)});lines.forEach(l=>use[l.id]=(use[l.id]||0)+l.q);
+for(const id in use){const it=itm(id);if(it&&use[id]>it.q+1e-9){toast('Not enough stock of '+it.name+'.');return}}
+S.sales[eb]={d:ebd.d,m:ebd.m,c:(ebd.c||'').trim(),lines};eb=-1;ebd=null;await save();render();toast('Bill updated ✓')}
 async function addI(){const n=$('nn').value.trim(),q=parseFloat($('nq').value),p=parseFloat($('np').value);if(!n||!(q>0)||isNaN(p)||p<0){toast('Enter name, quantity and purchase price.');return}S.items.push({id:uid(),name:n,q,p,d:Date.now()});await save();render()}
 function addC(){const it=itm(sel),q=parseFloat($('sq').value),p=parseFloat($('sp').value);
 if(!(q>0)||isNaN(p)||p<0){toast('Enter quantity and selling price.');return}if(q>avail(it)){toast('Only '+avail(it)+' available.');return}
