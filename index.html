@@ -74,13 +74,14 @@ const nav=menu?`<div class="ov" onclick="tm()"></div><nav class="dr"><h2>🏪 ${
 const tb=`<div class="tb">${TABS.map(x=>`<button class="${V===x?'on':''}" onclick="go('${x}')"><span>${IC[x]}</span>${TT[x]}</button>`).join('')}</div>`;
 app.innerHTML=`<div class="top"><button class="ic" onclick="tm()" aria-label="Menu">☰</button><div style="flex:1"><h1>${TT[V]}</h1><small class="mu">🏪 ${esc(U)}</small></div></div>${nav}`+({dash:dashV,items:itemsV,bill:billV,sell:sellV,admin:adminV}[V])()+tb}
 const fd=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})};
-function dashV(){let inv=0,cash=0,onl=0;S.items.forEach(it=>inv+=it.q*it.p);S.sales.forEach(b=>{const p=payOf(b);cash+=p.cash;onl+=p.online});
+function dashV(){let inv=0,cash=0,onl=0,sc=0,sn=0;S.items.forEach(it=>inv+=it.q*it.p);S.sales.forEach(b=>{const p=payOf(b),x=bill(b);cash+=p.cash;onl+=p.online;sc+=x.t-x.pr;sn++});
 const tot=cash+onl,ov=tot-inv;
 return `<div class="hero"><small>Overall profit or loss</small><b>${ov>0.004?'+':''}${R(ov)}</b><small>${ov>0.004?'In profit 🎉':ov<-0.004?'Stock cost not fully recovered yet':inv?'Cost recovered. Break-even':'Add items to begin'} · Recovered ${R(tot)} of ${R(inv)}</small></div>
 <div class="gr"><div class="k"><small>💼 Money invested</small><b>${R(inv)}</b><i>Total cost of all items bought</i></div>
 <div class="k"><small>🧾 Total money</small><b>${R(tot)}</b><i>Cash + Online</i></div>
 <div class="k"><small>💵 Cash money</small><b>${R(cash)}</b><i>Received in cash</i></div>
-<div class="k"><small>📱 Online money</small><b>${R(onl)}</b><i>Received online</i></div></div>`}
+<div class="k"><small>📱 Online money</small><b>${R(onl)}</b><i>Received online</i></div>
+<div class="k" style="grid-column:1/-1;cursor:pointer" onclick="go('sell')"><small>💼 Cost of all sold items</small><b>${R(sc)}</b><i>Purchase cost of items sold in ${sn} bill${sn==1?'':'s'} · tap to open Sell</i></div></div>`}
 function dateV(){
 const all=S.sales.map((b,i)=>({b,i,x:bill(b)})),cnt={all:all.length,pr:all.filter(o=>o.x.pr>0.004).length,ls:all.filter(o=>o.x.pr<-0.004).length};
 const fl=all.filter(o=>dtab==='pr'?o.x.pr>0.004:dtab==='ls'?o.x.pr<-0.004:true);
