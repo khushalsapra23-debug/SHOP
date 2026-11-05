@@ -30,7 +30,7 @@ button{padding:13px 16px;border:0;border-radius:12px;background:var(--ac);color:
 </style></head><body><div class="w" id="app"></div>
 <script>
 const $=id=>document.getElementById(id),app=$('app'),K='stk_vault_v1',enc=new TextEncoder(),dec=new TextDecoder();
-let U='',KU='',lm='in',key=null,salt=null,S={items:[],sales:[]},V='dash',menu=false,sel='',pd='',mode='cash',cart=[],cust='',ed='',eb=-1,ebd=null,dd='';
+let U='',KU='',lm='in',key=null,salt=null,S={items:[],sales:[]},V='dash',menu=false,sel='',pd='',mode='cash',cart=[],cust='',ed='',eb=-1,ebd=null,dd='',dtab='sales';
 const TT={dash:'Dashboard',items:'Items',bill:'Billing',sell:'Sell',admin:'Admin'},IC={dash:'📊',items:'📦',bill:'🧾',sell:'💰',admin:'⚙️'},TABS=['dash','items','bill','sell','admin'];
 const uid=()=>Math.random().toString(36).slice(2,9);
 const b64=a=>btoa(String.fromCharCode(...new Uint8Array(a))),ub=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
@@ -73,14 +73,28 @@ function render(){
 const nav=menu?`<div class="ov" onclick="tm()"></div><nav class="dr"><h2>🏪 ${esc(U)}</h2>${TABS.map(x=>`<button class="${V===x?'on':''}" onclick="go('${x}')"><span>${IC[x]}</span>${TT[x]}</button>`).join('')}<button onclick="lock()"><span>🔒</span>Lock</button></nav>`:'';
 const tb=`<div class="tb">${TABS.map(x=>`<button class="${V===x?'on':''}" onclick="go('${x}')"><span>${IC[x]}</span>${TT[x]}</button>`).join('')}</div>`;
 app.innerHTML=`<div class="top"><button class="ic" onclick="tm()" aria-label="Menu">☰</button><div style="flex:1"><h1>${TT[V]}</h1><small class="mu">🏪 ${esc(U)}</small></div></div>${nav}`+({dash:dashV,items:itemsV,bill:billV,sell:sellV,admin:adminV}[V])()+tb}
-function dashV(){let inv=0,cash=0,onl=0;S.items.forEach(it=>inv+=it.q*it.p);S.sales.forEach(b=>{const p=payOf(b);cash+=p.cash;onl+=p.online});if(!dd)dd=ymd(Date.now());let de=0,dc=0,dp=0,dk=0,dn=0,dm=0;S.sales.forEach(b=>{if(ymd(b.d)!==dd)return;const x=bill(b),p=payOf(b);dm++;de+=x.t;dp+=x.pr;dc+=x.t-x.pr;dk+=p.cash;dn+=p.online});
-const tot=cash+onl,ov=tot-inv;
+const fd=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})};
+function dashV(){let inv=0,cash=0,onl=0;S.items.forEach(it=>inv+=it.q*it.p);S.sales.forEach(b=>{const p=payOf(b);cash+=p.cash;onl+=p.online});
+const day={};S.sales.forEach(b=>{const k=ymd(b.d),x=bill(b),o=day[k]||(day[k]={n:0,t:0,pr:0});o.n++;o.t+=x.t;o.pr+=x.pr});
+const ds=Object.keys(day).sort().reverse();if(!day[dd])dd=ds[0]||'';
+let de=0,dc=0,dp=0,dk=0,dn=0;const bl=[],im={};
+S.sales.forEach(b=>{if(ymd(b.d)!==dd)return;const x=bill(b),p=payOf(b);de+=x.t;dp+=x.pr;dc+=x.t-x.pr;dk+=p.cash;dn+=p.online;bl.push(b);
+b.lines.forEach(l=>{const it=itm(l.id),o=im[l.id]||(im[l.id]={n:it?it.name:'Item',q:0,s:0,c:0});o.q+=l.q;o.s+=l.q*l.p;o.c+=l.q*(it?it.p:0)})});
+bl.sort((a,b)=>b.d-a.d);
+const tot=cash+onl,ov=tot-inv,pl=n=>n>0.004?'Profit':n<-0.004?'Loss':'Break-even';
+const sel=ds.length?`<label>Select a billing date</label><select onchange="dd=this.value;render()">${ds.map(k=>`<option value="${k}" ${k===dd?'selected':''}>${fd(k)} · ${day[k].n} bill${day[k].n==1?'':'s'}</option>`).join('')}</select>`:'';
+const sales=`<div class="gr" style="margin-top:6px"><div class="k"><small>💰 Total sales</small><b>${R(de)}</b><i>${bl.length} bill${bl.length==1?'':'s'} on this day</i></div><div class="k"><small>🧾 Total received</small><b>${R(dk+dn)}</b><i>Cash + Online</i></div><div class="k"><small>💵 Cash received</small><b>${R(dk)}</b></div><div class="k"><small>📱 Online received</small><b>${R(dn)}</b></div></div>
+<h3 style="margin:16px 0 0">Bills on this day</h3>${bl.map(b=>{const x=bill(b);return `<div class="ln"><span><b>${esc((b.c||'').trim()||'Walk-in customer')}</b><br><span class="mu">${new Date(b.d).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})} · ${payLabel(b)}</span></span><b>${R(x.t)}</b></div>`}).join('')}`;
+const pls=`<div class="gr" style="margin-top:6px"><div class="k" style="grid-column:1/-1"><small>📈 ${pl(dp)} of the day</small><b class="${cls(dp)}">${dp>0.004?'+':''}${R(dp)}</b><i>Earning − investment</i></div><div class="k"><small>💰 Earning (sales)</small><b>${R(de)}</b></div><div class="k"><small>💼 Investment on sold items</small><b>${R(dc)}</b><i>Purchase cost of what was sold</i></div></div>
+<h3 style="margin:16px 0 0">Item-wise on this day</h3>${Object.values(im).map(o=>{const p=o.s-o.c;return `<div class="ln"><span>${esc(o.n)} · ${rd(o.q)} sold<br><span class="mu">Sold ${R(o.s)} · Cost ${R(o.c)}</span></span><span class="chip ${cls(p)}">${p>=0?'Profit ':'Loss '}${R(Math.abs(p))}</span></div>`}).join('')}
+<h3 style="margin:16px 0 0">All billed days</h3>${ds.map(k=>{const p=day[k].pr;return `<div class="ln" style="cursor:pointer" onclick="dd='${k}';render()"><span>${k===dd?'<b>'+fd(k)+'</b>':fd(k)}<br><span class="mu">${day[k].n} bill${day[k].n==1?'':'s'} · Sales ${R(day[k].t)}</span></span><span class="chip ${cls(p)}">${p>=0?'Profit ':'Loss '}${R(Math.abs(p))}</span></div>`}).join('')}`;
 return `<div class="hero"><small>Overall profit or loss</small><b>${ov>0.004?'+':''}${R(ov)}</b><small>${ov>0.004?'In profit 🎉':ov<-0.004?'Stock cost not fully recovered yet':inv?'Cost recovered. Break-even':'Add items to begin'} · Recovered ${R(tot)} of ${R(inv)}</small></div>
 <div class="gr"><div class="k"><small>💼 Money invested</small><b>${R(inv)}</b><i>Total cost of all items bought</i></div>
 <div class="k"><small>🧾 Total money</small><b>${R(tot)}</b><i>Cash + Online</i></div>
 <div class="k"><small>💵 Cash money</small><b>${R(cash)}</b><i>Received in cash</i></div>
 <div class="k"><small>📱 Online money</small><b>${R(onl)}</b><i>Received online</i></div></div>
-<div class="cd"><h3>📅 Daily report</h3><label>Choose date</label><input type="date" value="${dd}" onchange="dd=this.value||ymd(Date.now());render()"><div class="gr" style="margin-top:6px"><div class="k"><small>💰 Earning (sales)</small><b>${R(de)}</b><i>${dm} bill${dm==1?'':'s'} on this day</i></div><div class="k"><small>💼 Investment on sold items</small><b>${R(dc)}</b><i>Purchase cost of what was sold</i></div><div class="k"><small>📈 Profit of the day</small><b class="${cls(dp)}">${R(dp)}</b><i>Earning − investment</i></div><div class="k"><small>🧾 Total received</small><b>${R(dk+dn)}</b><i>Cash + Online</i></div><div class="k"><small>💵 Cash received</small><b>${R(dk)}</b></div><div class="k"><small>📱 Online received</small><b>${R(dn)}</b></div></div></div>`}
+<div class="cd"><div class="seg" style="margin-top:0"><button class="${dtab==='sales'?'on':''}" onclick="dtab='sales';render()">💰 Sales</button><button class="${dtab==='pl'?'on':''}" onclick="dtab='pl';render()">📈 Profit &amp; Loss</button></div>
+${ds.length?sel+(dtab==='sales'?sales:pls):'<p class="mu">No sales yet. Dates will appear here once you complete a bill.</p>'}</div>`}
 function itemsV(){return `<div class="cd"><h3>Add an item</h3><label>Item name</label><input id="nn" placeholder="e.g. Rice 1 kg"><div class="rw"><div><label>Quantity</label><input id="nq" type="number" step="any" min="0" placeholder="0"></div><div><label>Purchase price (each)</label><input id="np" type="number" step="any" min="0" placeholder="₹"></div></div><button style="width:100%;margin-top:10px" onclick="addI()">Add item</button></div>
 <h3 style="margin:20px 0 0">Items in shop</h3>${S.items.map(it=>ed===it.id?editI(it):`<div class="cd"><div class="h"><h3 style="margin:0">${esc(it.name)}</h3><span><button class="x" style="color:var(--ac)" onclick="ed='${it.id}';render()">Edit</button><button class="x" onclick="del('i${it.id}')">${pd==='i'+it.id?'Tap again to delete':'Delete'}</button></span></div>
 <p style="margin:8px 0 0"><span class="chip">Bought: ${it.q}</span> <span class="chip">Purchase price: ${R(it.p)}</span> <span class="chip ${held(it)>0?'':'r'}">In stock: ${held(it)}</span></p></div>`).join('')||'<div class="cd mu">No items yet.</div>'}`}
